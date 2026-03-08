@@ -1,0 +1,925 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文件托管</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .subtitle {
+            color: rgba(255,255,255,0.9);
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .stats-bar {
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(10px);
+            border-radius: 8px;
+            padding: 10px 20px;
+            margin-bottom: 20px;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+        }
+
+        .warning-box {
+            background: #fff7ed;
+            border-left: 4px solid #f97316;
+            padding: 12px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+            color: #c2410c;
+            font-size: 14px;
+        }
+
+        .tip-box {
+            background: #ecfdf5;
+            border-left: 4px solid #10b981;
+            padding: 12px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+            color: #047857;
+            font-size: 13px;
+        }
+
+        .upload-box {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+            border: 3px dashed #cbd5e1;
+            transition: all 0.3s;
+        }
+
+            .upload-box:hover {
+                border-color: #667eea;
+                transform: translateY(-2px);
+            }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .btn {
+            background: #667eea;
+            color: white;
+            padding: 10px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            border: none;
+            transition: all 0.3s;
+        }
+
+            .btn:hover:not(:disabled) {
+                background: #764ba2;
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            }
+
+            .btn:disabled {
+                opacity: 0.5;
+                cursor: not-allowed;
+            }
+
+        .btn-secondary {
+            background: #64748b;
+        }
+
+        .rejected-list {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #b91c1c;
+            padding: 10px;
+            border-radius: 6px;
+            margin-top: 10px;
+            font-size: 13px;
+            display: none;
+        }
+
+        .loading-overlay {
+            text-align: center;
+            padding: 40px;
+            color: white;
+            font-size: 16px;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 10px;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .file-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            min-height: 200px;
+        }
+
+        .file-card {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.3s, box-shadow 0.3s;
+            display: flex;
+            flex-direction: column;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .file-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+        }
+
+        .file-preview {
+            height: 150px;
+            background: #f1f5f9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+            .file-preview img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+            }
+
+        .file-icon {
+            font-size: 60px;
+        }
+
+        .file-info {
+            padding: 15px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .file-name {
+            font-weight: 600;
+            color: #1e293b;
+            word-break: break-all;
+            font-size: 14px;
+            line-height: 1.4;
+            border-bottom: 1px solid #e5e7eb;
+            padding-bottom: 8px;
+            margin-bottom: 4px;
+        }
+
+        .file-meta {
+            color: #64748b;
+            font-size: 12px;
+        }
+
+        /* 直接展示链接的样式 */
+        .format-display {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .format-label {
+            font-size: 11px;
+            color: #64748b;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+            .format-label .hint {
+                font-weight: normal;
+                color: #94a3b8;
+                font-size: 10px;
+            }
+
+        .format-input {
+            width: 100%;
+            padding: 6px 8px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 11px;
+            background: #f8fafc;
+            color: #334155;
+            resize: none;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+            .format-input:focus {
+                border-color: #667eea;
+                background: #fff;
+            }
+
+            .format-input.single {
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                height: 28px;
+            }
+
+            .format-input.multiline {
+                min-height: 50px;
+                height: 60px;
+                line-height: 1.4;
+            }
+
+        /* 尺寸选择按钮 */
+        .size-control {
+            margin-bottom: 8px;
+        }
+
+        .size-buttons {
+            display: flex;
+            gap: 4px;
+            margin-top: 4px;
+        }
+
+        .btn-size {
+            flex: 1;
+            padding: 4px;
+            font-size: 11px;
+            border: 1px solid #e5e7eb;
+            background: white;
+            color: #6b7280;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+            .btn-size:hover {
+                background: #f3f4f6;
+                border-color: #d1d5db;
+            }
+
+            .btn-size.active {
+                background: #667eea;
+                color: white;
+                border-color: #667eea;
+            }
+
+        .action-row {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        .btn-small {
+            flex: 1;
+            padding: 6px;
+            font-size: 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-delete {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
+            .btn-delete:hover {
+                background: #dc2626;
+                color: white;
+            }
+
+        .btn-full {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+            .btn-full:hover {
+                background: #1e40af;
+                color: white;
+            }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            margin-top: 30px;
+            padding: 20px;
+            flex-wrap: wrap;
+        }
+
+        .page-btn {
+            padding: 8px 12px;
+            border: none;
+            background: white;
+            color: #64748b;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            min-width: 36px;
+            transition: all 0.2s;
+        }
+
+            .page-btn:hover:not(:disabled) {
+                background: #667eea;
+                color: white;
+            }
+
+            .page-btn:disabled {
+                opacity: 0.3;
+                cursor: not-allowed;
+            }
+
+            .page-btn.active {
+                background: #667eea;
+                color: white;
+                font-weight: 600;
+            }
+
+        .page-info {
+            color: white;
+            font-size: 14px;
+            padding: 0 10px;
+        }
+
+        .page-size-select {
+            padding: 6px 10px;
+            border-radius: 6px;
+            border: none;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .empty {
+            text-align: center;
+            color: white;
+            font-size: 18px;
+            margin-top: 50px;
+            opacity: 0.8;
+            grid-column: 1 / -1;
+        }
+
+        /* 模态框样式调整 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+
+            .modal.show {
+                display: flex;
+            }
+
+        .modal-content {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            max-width: 700px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #64748b;
+        }
+
+            .modal-close:hover {
+                color: #1e293b;
+            }
+
+        .format-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .format-item {
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .format-title {
+            background: #f8fafc;
+            padding: 8px 12px;
+            font-size: 12px;
+            color: #475569;
+            font-weight: 600;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .format-content {
+            padding: 8px;
+        }
+
+            .format-content textarea {
+                width: 100%;
+                min-height: 60px;
+                border: none;
+                background: #1e293b;
+                color: #e2e8f0;
+                font-family: 'Consolas', 'Monaco', monospace;
+                font-size: 12px;
+                padding: 10px;
+                border-radius: 4px;
+                resize: vertical;
+                outline: none;
+            }
+
+                .format-content textarea.full {
+                    min-height: 120px;
+                }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📁 文件托管</h1>
+        <p class="subtitle">支持分页加载 • 每页显示可控 • 手动复制链接</p>
+
+        <div class="stats-bar">
+            <span id="statsText">正在加载统计...</span>
+            <span id="pageStats"></span>
+        </div>
+
+        <div class="warning-box">
+            <strong>安全策略：</strong>允许上传：图片、文档、压缩包、音视频。禁止：.exe .php .bat 等可执行文件。
+        </div>
+
+        <div class="tip-box">
+            💡 <strong>使用提示：</strong>点击文本框即可全选内容，按 Ctrl+C（或 Cmd+C）复制。支持 HTTP 环境。
+        </div>
+
+        <div class="upload-box" id="dropZone">
+            <h2>拖拽文件到这里上传</h2>
+            <p style="color: #64748b; margin: 10px 0;">或者</p>
+            <input type="file" id="fileInput" multiple accept="*/*">
+            <button class="btn" onclick="document.getElementById('fileInput').click()">选择文件</button>
+            <p style="color: #94a3b8; font-size: 12px; margin-top: 10px;">支持多选，单个文件最大 100MB</p>
+            <div id="rejectedBox" class="rejected-list"></div>
+        </div>
+
+        <div id="fileList" class="file-grid">
+            <div class="loading-overlay">
+                <div class="spinner"></div>
+                <div>正在加载文件列表...</div>
+            </div>
+        </div>
+
+        <div class="pagination" id="pagination" style="display: none;">
+            <button class="page-btn" id="btnFirst" onclick="goToPage(1)">首页</button>
+            <button class="page-btn" id="btnPrev" onclick="changePage(-1)">上一页</button>
+
+            <span class="page-info" id="pageInfo">第 1 / 1 页</span>
+
+            <button class="page-btn" id="btnNext" onclick="changePage(1)">下一页</button>
+            <button class="page-btn" id="btnLast" onclick="goToPage(totalPages)">末页</button>
+
+            <select class="page-size-select" id="pageSizeSelect" onchange="changePageSize(this.value)">
+                <option value="8">8个/页</option>
+                <option value="12" selected>12个/页</option>
+                <option value="24">24个/页</option>
+                <option value="48">48个/页</option>
+            </select>
+        </div>
+
+        <div id="emptyMsg" class="empty" style="display: none; grid-column: 1/-1;">
+            暂无文件，请上传第一个文件！
+        </div>
+    </div>
+
+    <div id="formatModal" class="modal" onclick="closeModalOnBackground(event)">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="modal-title">📋 所有可用格式（点击文本框全选复制）</span>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div id="modalBody" class="format-list"></div>
+        </div>
+    </div>
+
+    <script>
+        let currentPage = 1;
+        let pageSize = 12;
+        let totalPages = 1;
+        let totalFiles = 0;
+        let isLoading = false;
+        let selectedSizes = {}; // 存储每个文件的尺寸选择
+        let currentFilesData = []; // 缓存当前页数据
+
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const fileList = document.getElementById('fileList');
+        const emptyMsg = document.getElementById('emptyMsg');
+        const rejectedBox = document.getElementById('rejectedBox');
+        const pagination = document.getElementById('pagination');
+        const formatModal = document.getElementById('formatModal');
+        const modalBody = document.getElementById('modalBody');
+
+        window.onload = () => {
+            loadStats();
+            loadFiles(1);
+        };
+
+        async function loadStats() {
+            try {
+                const res = await fetch('/api/stats');
+                const data = await res.json();
+                document.getElementById('statsText').textContent =
+                    `📊 共 ${data.count} 个文件，占用 ${data.totalSize}`;
+            } catch (e) {
+                document.getElementById('statsText').textContent = '统计加载失败';
+            }
+        }
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.style.borderColor = '#764ba2';
+        });
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.style.borderColor = '#cbd5e1';
+        });
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.style.borderColor = '#cbd5e1';
+            if (e.dataTransfer.files.length > 0) uploadFiles(e.dataTransfer.files);
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) uploadFiles(e.target.files);
+        });
+
+        async function uploadFiles(files) {
+            const formData = new FormData();
+            for (let file of files) formData.append('files', file);
+
+            rejectedBox.style.display = 'none';
+            rejectedBox.innerHTML = '';
+            alert('正在上传，请稍候...');
+
+            try {
+                const response = await fetch('/api/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    if (result.rejected && result.rejected.length > 0) {
+                        rejectedBox.innerHTML = `<strong>⚠️ 以下文件被拒绝：</strong><br>` + result.rejected.join('<br>');
+                        rejectedBox.style.display = 'block';
+                    }
+                    alert(`✅ ${result.message}`);
+                    loadStats();
+                    loadFiles(1);
+                    fileInput.value = '';
+                } else {
+                    alert(`❌ ${result.error || result.message || '上传失败'}`);
+                }
+            } catch (error) {
+                alert(`❌ 网络错误: ${error.message}`);
+            }
+        }
+
+        async function loadFiles(page = 1) {
+            if (isLoading) return;
+            isLoading = true;
+            currentPage = page;
+
+            if (page === 1) {
+                fileList.innerHTML = `
+                            <div class="loading-overlay" style="grid-column: 1/-1;">
+                                <div class="spinner"></div>
+                                <div>正在加载...</div>
+                            </div>
+                        `;
+            }
+
+            try {
+                const response = await fetch(`/api/list?page=${page}&pageSize=${pageSize}`);
+                const data = await response.json();
+                currentFilesData = data.files || [];
+
+                totalPages = data.totalPages || 1;
+                totalFiles = data.total || 0;
+
+                updatePaginationUI();
+
+                if (data.files.length === 0) {
+                    fileList.innerHTML = '';
+                    emptyMsg.style.display = 'block';
+                    pagination.style.display = totalPages > 1 ? 'flex' : 'none';
+                    return;
+                }
+
+                emptyMsg.style.display = 'none';
+                pagination.style.display = 'flex';
+
+                fileList.innerHTML = data.files.map(file => {
+                    const isImage = file.formats.htmlSmall !== undefined;
+                    // 初始化默认尺寸
+                    if (!selectedSizes[file.name]) selectedSizes[file.name] = 'small';
+                    const currentSize = selectedSizes[file.name];
+                    const safeName = file.name.replace(/"/g, '&quot;');
+
+                    // 根据当前尺寸获取对应的HTML和Markdown
+                    let currentHtml = file.formats.html;
+                    // 修复：保持原始Markdown格式，不要覆盖为HTML
+                    let currentMarkdown = file.formats.markdown;
+
+                    if (isImage) {
+                        if (currentSize === 'small') currentHtml = file.formats.htmlSmall;
+                        else if (currentSize === 'medium') currentHtml = file.formats.htmlMedium;
+                        else if (currentSize === 'large') currentHtml = file.formats.htmlLarge;
+
+                        // 修复：带尺寸的"Markdown"实际上是HTML img标签
+                        // 因为标准Markdown不支持尺寸参数
+                        const width = currentSize === 'small' ? 300 : currentSize === 'medium' ? 500 : 800;
+                        // 不要覆盖currentMarkdown，而是创建一个带尺寸的HTML版本
+                        // 这里我们保持currentMarkdown为原始的Markdown格式
+                    }
+
+                    return `
+                            <div class="file-card" data-file="${safeName}">
+                                <div class="file-preview">
+                                    ${isImage
+                            ? `<img src="${file.url}" alt="${safeName}" loading="lazy" onerror="this.outerHTML='<div class=\\'file-icon\\'>📄</div>'">`
+                            : `<div class="file-icon">${getFileIcon(file.name)}</div>`
+                        }
+                                </div>
+                                <div class="file-info">
+                                    <div class="file-name" title="${safeName}">${file.name}</div>
+                                    <div class="file-meta">${file.size} · 上传于 ${file.uploadTime}</div>
+
+                                    ${isImage ? `
+                                    <div class="size-control">
+                                        <div class="format-label">📐 图片尺寸选择</div>
+                                        <div class="size-buttons">
+                                            <button class="btn-size ${currentSize === 'small' ? 'active' : ''}"
+                                                onclick="changeSize('${safeName}', 'small')">小(300)</button>
+                                            <button class="btn-size ${currentSize === 'medium' ? 'active' : ''}"
+                                                onclick="changeSize('${safeName}', 'medium')">中(500)</button>
+                                            <button class="btn-size ${currentSize === 'large' ? 'active' : ''}"
+                                                onclick="changeSize('${safeName}', 'large')">大(800)</button>
+                                        </div>
+                                    </div>
+                                    ` : ''}
+
+                                    <div class="format-display">
+                                        <div class="format-label">
+                                            🔗 原始 URL
+                                            <span class="hint">点击选中</span>
+                                        </div>
+                                        <input type="text" class="format-input single" readonly
+                                            value="${escapeHtml(file.formats.raw)}"
+                                            onclick="this.select()">
+
+                                        <div class="format-label">
+                                            📄 Markdown 图片
+                                            <span class="hint">点击选中</span>
+                                        </div>
+                                        <input type="text" class="format-input single" readonly
+                                            value="${escapeHtml(currentMarkdown)}"
+                                            onclick="this.select()">
+
+                                        <div class="format-label">
+                                            💻 HTML 代码
+                                            <span class="hint">点击选中</span>
+                                        </div>
+                                        <textarea class="format-input multiline" readonly
+                                            onclick="this.select()">${escapeHtml(currentHtml)}</textarea>
+                                    </div>
+
+                                    <div class="action-row">
+                                        <button class="btn-small btn-full" onclick="showAllFormats('${safeName}')">📋 查看全部格式</button>
+                                        <button class="btn-small btn-delete" onclick="deleteFile('${file.name}')">删除</button>
+                                    </div>
+                                </div>
+                            </div>
+                        `}).join('');
+
+            } catch (error) {
+                alert('加载失败');
+                console.error(error);
+            } finally {
+                isLoading = false;
+            }
+        }
+
+        function changeSize(fileName, size) {
+            selectedSizes[fileName] = size;
+            // 重新加载当前页以更新显示
+            loadFiles(currentPage);
+        }
+
+        function updatePaginationUI() {
+            document.getElementById('pageInfo').textContent = `第 ${currentPage} / ${totalPages} 页 (共${totalFiles}个)`;
+
+            document.getElementById('btnFirst').disabled = currentPage === 1;
+            document.getElementById('btnPrev').disabled = currentPage === 1 || totalPages === 0;
+            document.getElementById('btnNext').disabled = currentPage === totalPages || totalPages === 0;
+            document.getElementById('btnLast').disabled = currentPage === totalPages || totalPages === 0;
+        }
+
+        function changePage(delta) {
+            const newPage = currentPage + delta;
+            if (newPage >= 1 && newPage <= totalPages) {
+                loadFiles(newPage);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+
+        function goToPage(page) {
+            if (page >= 1 && page <= totalPages) {
+                loadFiles(page);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+
+        function changePageSize(newSize) {
+            pageSize = parseInt(newSize);
+            loadFiles(1);
+        }
+
+        async function deleteFile(fileName) {
+            if (!confirm(`确定删除 ${fileName} 吗？`)) return;
+
+            try {
+                const response = await fetch(`/api/delete/${encodeURIComponent(fileName)}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    alert('✅ 删除成功');
+                    loadStats();
+                    if (document.querySelectorAll('.file-card').length === 1 && currentPage > 1) {
+                        loadFiles(currentPage - 1);
+                    } else {
+                        loadFiles(currentPage);
+                    }
+                } else {
+                    const err = await response.json();
+                    alert(`❌ ${err.message || '删除失败'}`);
+                }
+            } catch (error) {
+                alert('❌ 网络错误');
+            }
+        }
+
+        function showAllFormats(fileName) {
+            const file = currentFilesData.find(f => f.name === fileName);
+            if (!file) return;
+
+            const isImage = file.formats.htmlSmall !== undefined;
+            const currentSize = selectedSizes[fileName] || 'small';
+
+            let html = '';
+
+            // 原始URL
+            html += createFormatItem('🔗 原始 URL（Raw）', file.formats.raw);
+
+            // Markdown格式
+            html += createFormatItem('📝 标准 Markdown 图片 (![alt](url))', file.formats.markdown);
+
+            if (isImage) {
+                // 带尺寸的Markdown（实际上是HTML）
+                const width = currentSize === 'small' ? 300 : currentSize === 'medium' ? 500 : 800;
+                const mdWithSize = `<img src="${file.formats.raw}" alt="${escapeHtml(file.name)}" width="${width}" />`;
+                html += createFormatItem(`📐 Markdown 带宽度（${width}px - 实际为HTML）`, mdWithSize, true);
+            }
+
+            // HTML格式
+            html += createFormatItem('💻 标准 HTML（原始）', file.formats.html, true);
+
+            if (isImage) {
+                html += createFormatItem('🖼️ HTML 小图 (300px)', file.formats.htmlSmall, true);
+                html += createFormatItem('🖼️ HTML 中图 (500px)', file.formats.htmlMedium, true);
+                html += createFormatItem('🖼️ HTML 大图 (800px)', file.formats.htmlLarge, true);
+                html += createFormatItem('📱 HTML 响应式', file.formats.htmlResponsive, true);
+            }
+
+            // 链接格式
+            html += createFormatItem('🔗 Markdown 链接 ([text](url))', file.formats.markdownLink);
+            html += createFormatItem('🔗 HTML 链接 (<a href="...">)', file.formats.htmlLink, true);
+
+            modalBody.innerHTML = html;
+            formatModal.classList.add('show');
+        }
+
+        function createFormatItem(title, content, isFullHeight = false) {
+            if (!content) return '';
+            return `
+                    <div class="format-item">
+                        <div class="format-title">${title}</div>
+                        <div class="format-content">
+                            <textarea readonly onclick="this.select()" class="${isFullHeight ? 'full' : ''}">${escapeHtml(content)}</textarea>
+                        </div>
+                    </div>
+                `;
+        }
+
+        function closeModal() { formatModal.classList.remove('show'); }
+        function closeModalOnBackground(event) { if (event.target === formatModal) closeModal(); }
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        function getFileIcon(filename) {
+            const ext = filename.split('.').pop().toLowerCase();
+            const icons = {
+                png: '🖼️', jpg: '🖼️', jpeg: '🖼️', gif: '🖼️', webp: '🖼️', bmp: '🖼️', svg: '🎨',
+                pdf: '📕', doc: '📘', docx: '📘', xls: '📗', xlsx: '📗', txt: '📄',
+                zip: '📦', rar: '📦', '7z': '📦',
+                mp3: '🎵', mp4: '🎬', wav: '🎵'
+            };
+            return icons[ext] || '📎';
+        }
+    </script>
+</body>
+</html>
