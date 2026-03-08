@@ -19,6 +19,7 @@
 # 克隆仓库
 git clone https://github.com/yourusername/FileHost.git
 cd FileHost
+```
 
 # 运行（自动创建 uploads 目录）
 dotnet run
